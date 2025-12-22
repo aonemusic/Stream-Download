@@ -3,46 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A-One Chat | User Profile</title>
+    <title>A-One Chat | Photo & Video</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #fafafa; margin: 0; padding-bottom: 50px; }
         .header { background: white; border-bottom: 1px solid #dbdbdb; padding: 10px 0; text-align: center; position: sticky; top: 0; z-index: 1000; }
         .main-container { max-width: 500px; margin: 20px auto; padding: 10px; }
-        
         .card { background: white; border: 1px solid #dbdbdb; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #dbdbdb; border-radius: 4px; box-sizing: border-box; }
-        
         button { width: 100%; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .btn-primary { background-color: #0095f6; color: white; }
-        
         .post-card { background: white; border: 1px solid #dbdbdb; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
         .post-header { padding: 10px; font-weight: bold; display: flex; align-items: center; border-bottom: 1px solid #efefef; }
-        .user-pic { width: 35px; height: 35px; border-radius: 50%; margin-right: 10px; object-fit: cover; border: 1px solid #dbdbdb; }
-        .post-image { width: 100%; display: block; }
+        .user-pic { width: 35px; height: 35px; border-radius: 50%; margin-right: 10px; object-fit: cover; }
+        .post-media { width: 100%; display: block; background: #000; }
         .post-content { padding: 12px; }
-        
         .toggle-link { color: #0095f6; cursor: pointer; text-align: center; display: block; margin-top: 15px; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h2 style="margin:0;">A-One Chat</h2>
-    </div>
+    <div class="header"><h2>A-One Chat</h2></div>
 
     <div class="main-container">
         <div id="auth-section" class="card">
             <h3 id="auth-title" style="text-align:center;">Login</h3>
-            
             <div id="signup-extra" style="display:none;">
                 <input type="text" id="reg-username" placeholder="Full Name">
-                <label style="font-size: 12px; color: #666;">Profile Picture:</label>
+                <label style="font-size: 12px;">Profile Picture:</label>
                 <input type="file" id="reg-profile-pic" accept="image/*">
             </div>
-
             <input type="email" id="auth-email" placeholder="Email">
             <input type="password" id="auth-password" placeholder="Password">
-            
             <button id="auth-btn" class="btn-primary" onclick="handleAuth()">Login</button>
             <span id="toggle-auth" class="toggle-link" onclick="toggleAuthMode()">Don't have an account? Sign Up</span>
         </div>
@@ -53,11 +44,12 @@
                     <img id="current-user-pic" class="user-pic" src="">
                     <span id="current-user-name" style="font-weight:bold;"></span>
                 </div>
-                <button onclick="logout()" style="width:auto; padding:5px 10px; background:none; color:red; border:none;">Logout</button>
+                <button onclick="logout()" style="width:auto; background:none; color:red;">Logout</button>
             </div>
 
             <div class="card">
-                <input type="file" id="post-image-input" accept="image/*">
+                <label style="font-weight:bold; font-size:13px;">Select Photo or Video:</label>
+                <input type="file" id="post-media-input" accept="image/*,video/*">
                 <input type="text" id="post-caption-input" placeholder="Write a caption...">
                 <button id="post-btn" class="btn-primary" onclick="handlePost()">Post Now</button>
             </div>
@@ -85,132 +77,88 @@
         const db = getFirestore(app);
 
         let isLoginMode = true;
-
-        // Toggle between Login and Signup UI
         window.toggleAuthMode = () => {
             isLoginMode = !isLoginMode;
             document.getElementById('auth-title').innerText = isLoginMode ? "Login" : "Sign Up";
-            document.getElementById('auth-btn').innerText = isLoginMode ? "Login" : "Register";
             document.getElementById('signup-extra').style.display = isLoginMode ? "none" : "block";
-            document.getElementById('toggle-auth').innerText = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Login";
+            document.getElementById('toggle-auth').innerText = isLoginMode ? "Sign Up here" : "Login here";
         };
 
-        // Handle Login / Registration
         window.handleAuth = async () => {
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
-            const authBtn = document.getElementById('auth-btn');
-
-            if (!email || !password) return alert("Please fill all fields");
-            authBtn.disabled = true;
-
-            try {
-                if (isLoginMode) {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } else {
-                    const username = document.getElementById('reg-username').value;
-                    const picFile = document.getElementById('reg-profile-pic').files[0];
-                    if (!username || !picFile) return alert("Name and Profile Pic required");
-
-                    authBtn.innerText = "Creating Account...";
-                    
-                    // Upload profile pic to Cloudinary
-                    const formData = new FormData();
-                    formData.append("file", picFile);
-                    formData.append("upload_preset", "mloo8sj4");
-                    const res = await fetch("https://api.cloudinary.com/v1_1/dpr1oyqat/image/upload", { method: "POST", body: formData });
-                    const picData = await res.json();
-
-                    // Create User
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    await updateProfile(userCredential.user, {
-                        displayName: username,
-                        photoURL: picData.secure_url
-                    });
-                    location.reload(); // Refresh to sync profile
-                }
-            } catch (err) {
-                alert(err.message);
-            } finally {
-                authBtn.disabled = false;
+            if (isLoginMode) {
+                await signInWithEmailAndPassword(auth, email, password).catch(e => alert(e.message));
+            } else {
+                const name = document.getElementById('reg-username').value;
+                const file = document.getElementById('reg-profile-pic').files[0];
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("upload_preset", "mloo8sj4");
+                const res = await fetch("https://api.cloudinary.com/v1_1/dpr1oyqat/image/upload", {method:"POST", body:formData});
+                const data = await res.json();
+                const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCred.user, { displayName: name, photoURL: data.secure_url });
+                location.reload();
             }
         };
 
-        // Auth Listener
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('auth-section').style.display = "none";
                 document.getElementById('app-content').style.display = "block";
                 document.getElementById('current-user-name').innerText = user.displayName;
-                document.getElementById('current-user-pic').src = user.photoURL || 'https://via.placeholder.com/35';
+                document.getElementById('current-user-pic').src = user.photoURL;
                 loadPosts();
-            } else {
-                document.getElementById('auth-section').style.display = "block";
-                document.getElementById('app-content').style.display = "none";
             }
         });
 
         window.logout = () => signOut(auth);
 
-        // Post and Like Logic (Same as before but using auth user details)
         window.handlePost = async () => {
-            const fileInput = document.getElementById('post-image-input');
-            const captionInput = document.getElementById('post-caption-input');
-            const postBtn = document.getElementById('post-btn');
-
-            if (!fileInput.files[0]) return alert("Select an image!");
-
-            postBtn.innerText = "Posting...";
-            postBtn.disabled = true;
-
+            const file = document.getElementById('post-media-input').files[0];
+            const caption = document.getElementById('post-caption-input').value;
+            if (!file) return alert("Select a file!");
+            
+            document.getElementById('post-btn').innerText = "Uploading Media...";
+            const resourceType = file.type.startsWith('video') ? 'video' : 'image';
+            
             const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
+            formData.append("file", file);
             formData.append("upload_preset", "mloo8sj4");
 
-            try {
-                const res = await fetch("https://api.cloudinary.com/v1_1/dpr1oyqat/image/upload", { method: "POST", body: formData });
-                const data = await res.json();
+            const res = await fetch(`https://api.cloudinary.com/v1_1/dpr1oyqat/${resourceType}/upload`, {method:"POST", body:formData});
+            const data = await res.json();
 
-                await addDoc(collection(db, "posts"), {
-                    imageUrl: data.secure_url,
-                    caption: captionInput.value,
-                    username: auth.currentUser.displayName,
-                    userPhoto: auth.currentUser.photoURL,
-                    likes: [],
-                    timestamp: serverTimestamp()
-                });
-                fileInput.value = ""; captionInput.value = "";
-            } catch (err) { alert("Post failed"); }
-            finally { postBtn.innerText = "Post Now"; postBtn.disabled = false; }
-        };
-
-        window.toggleLike = async (postId, likesArray) => {
-            const postRef = doc(db, "posts", postId);
-            const isLiked = likesArray && likesArray.includes(auth.currentUser.uid);
-            await updateDoc(postRef, { likes: isLiked ? arrayRemove(auth.currentUser.uid) : arrayUnion(auth.currentUser.uid) });
+            await addDoc(collection(db, "posts"), {
+                mediaUrl: data.secure_url,
+                mediaType: resourceType,
+                caption: caption,
+                username: auth.currentUser.displayName,
+                userPhoto: auth.currentUser.photoURL,
+                likes: [],
+                timestamp: serverTimestamp()
+            });
+            alert("Posted!");
+            location.reload();
         };
 
         function loadPosts() {
-            const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
                 const feed = document.getElementById('feed-section');
                 feed.innerHTML = "";
-                snapshot.forEach((postDoc) => {
-                    const post = postDoc.data();
-                    const isLiked = post.likes?.includes(auth.currentUser.uid);
+                snap.forEach(docSnap => {
+                    const post = docSnap.data();
+                    const mediaHtml = post.mediaType === 'video' 
+                        ? `<video class="post-media" src="${post.mediaUrl}" controls></video>`
+                        : `<img class="post-media" src="${post.mediaUrl}">`;
+                    
                     feed.innerHTML += `
                         <div class="post-card">
-                            <div class="post-header">
-                                <img class="user-pic" src="${post.userPhoto}">
-                                <span>${post.username}</span>
-                            </div>
-                            <img class="post-image" src="${post.imageUrl}">
+                            <div class="post-header"><img class="user-pic" src="${post.userPhoto}"> ${post.username}</div>
+                            ${mediaHtml}
                             <div class="post-content">
-                                <button onclick="toggleLike('${postDoc.id}', ${JSON.stringify(post.likes)})" style="background:none; border:none; font-size:22px; cursor:pointer;">
-                                    ${isLiked ? '❤️' : '🤍'}
-                                </button>
-                                <div style="font-weight:bold; font-size:14px;">${post.likes?.length || 0} likes</div>
-                                <div style="font-size:14px; margin-top:5px;"><b>${post.username}</b> ${post.caption}</div>
+                                <b>${post.username}</b> ${post.caption}
                             </div>
                         </div>`;
                 });
