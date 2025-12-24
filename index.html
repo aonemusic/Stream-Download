@@ -3,119 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Stats Tracker</title>
+    <title>YouTube Stats Pro</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { color: #333; margin-bottom: 25px; }
-        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; }
-        .tab-btn { padding: 12px 25px; cursor: pointer; border: none; background: #e4e6eb; border-radius: 8px; font-weight: bold; transition: 0.3s; }
-        .active { background: #ff0000; color: white; }
-        input { width: 100%; box-sizing: border-box; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
-        button.search-btn { width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button.search-btn:hover { background: #218838; }
-        .result { margin-top: 30px; text-align: left; padding: 20px; border-radius: 10px; background: #fafafa; border: 1px solid #eee; display: none; }
-        #titleName { color: #1a1a1a; margin-top: 0; border-bottom: 2px solid #ff0000; padding-bottom: 10px; margin-bottom: 15px; }
-        .stat-item { font-size: 18px; margin: 12px 0; color: #444; display: flex; justify-content: space-between; }
-        .stat-item span { font-weight: bold; color: #ff0000; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { width: 90%; max-width: 500px; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #ff0000; margin-bottom: 20px; }
+        .tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 20px; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; color: #666; transition: 0.3s; }
+        .tab.active { color: #ff0000; border-bottom: 2px solid #ff0000; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        button { width: 100%; padding: 12px; background: #ff0000; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #cc0000; }
+        #result { margin-top: 25px; display: none; padding: 15px; background: #f9f9f9; border-radius: 8px; border-left: 5px solid #ff0000; }
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: #555; }
+        .stat-value { font-weight: bold; color: #000; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>YouTube Stats Tracker</h2>
-    
+    <h2>YouTube Tracker</h2>
     <div class="tabs">
-        <button id="videoTab" class="tab-btn active" onclick="showTab('video')">Video Stats</button>
-        <button id="channelTab" class="tab-btn" onclick="showTab('channel')">Channel Stats</button>
+        <div id="vTab" class="tab active" onclick="switchMode('video')">Video</div>
+        <div id="cTab" class="tab" onclick="switchMode('channel')">Channel</div>
     </div>
 
-    <div id="videoSection">
-        <input type="text" id="videoUrl" placeholder="Enter YouTube Video URL">
-        <button class="search-btn" onclick="getVideoStats()">Fetch Video Details</button>
+    <div id="inputArea">
+        <input type="text" id="userInput" placeholder="Paste Video URL here...">
+        <button onclick="fetchData()">Get Stats</button>
     </div>
 
-    <div id="channelSection" style="display:none;">
-        <input type="text" id="channelId" placeholder="Enter YouTube Channel ID (e.g. UC...)">
-        <button class="search-btn" onclick="getChannelStats()">Fetch Channel Details</button>
-    </div>
-
-    <div id="resultBox" class="result">
-        <h3 id="titleName"></h3>
-        <div class="stat-item" id="label1">Total Views: <span id="count1">-</span></div>
-        <div class="stat-item" id="label2">Likes: <span id="count2">-</span></div>
-        <div class="stat-item" id="label3">Comments: <span id="count3">-</span></div>
+    <div id="result">
+        <h4 id="resTitle" style="margin: 0 0 10px 0; color: #333;"></h4>
+        <div id="statsList"></div>
     </div>
 </div>
 
 <script>
-    // Your provided API Key
-    const API_KEY = 'AIzaSyAqktN1VLW9_ekCeTdGw5RiDx7UF_RQu24';
+    const API_KEY = 'AIzaSyDS4WVVBDKuji6jmVzf0rCDsgU2RvRiwVI';
+    let currentMode = 'video';
 
-    function showTab(type) {
-        document.getElementById('videoTab').classList.remove('active');
-        document.getElementById('channelTab').classList.remove('active');
-        
-        if (type === 'video') {
-            document.getElementById('videoSection').style.display = 'block';
-            document.getElementById('channelSection').style.display = 'none';
-            document.getElementById('videoTab').classList.add('active');
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('vTab').classList.toggle('active', mode === 'video');
+        document.getElementById('cTab').classList.toggle('active', mode === 'channel');
+        document.getElementById('userInput').placeholder = mode === 'video' ? "Paste Video URL here..." : "Paste Channel ID (UC...)";
+        document.getElementById('result').style.display = 'none';
+        document.getElementById('userInput').value = '';
+    }
+
+    function extractVideoId(url) {
+        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+        const match = url.match(regex);
+        return match ? match[1] : url;
+    }
+
+    async function fetchData() {
+        const input = document.getElementById('userInput').value.trim();
+        if (!input) return alert("Please enter a link or ID");
+
+        let url = "";
+        if (currentMode === 'video') {
+            const vId = extractVideoId(input);
+            url = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${vId}&key=${API_KEY}`;
         } else {
-            document.getElementById('videoSection').style.display = 'none';
-            document.getElementById('channelSection').style.display = 'block';
-            document.getElementById('channelTab').classList.add('active');
+            // ചാനൽ ഐഡി നേരിട്ട് എടുക്കുന്നു
+            url = `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${input}&key=${API_KEY}`;
         }
-        document.getElementById('resultBox').style.display = 'none';
-    }
 
-    async function getVideoStats() {
-        const urlInput = document.getElementById('videoUrl').value;
-        let videoId = "";
-        
         try {
-            if (urlInput.includes("v=")) {
-                videoId = urlInput.split("v=")[1].split("&")[0];
-            } else if (urlInput.includes("youtu.be/")) {
-                videoId = urlInput.split("youtu.be/")[1].split("?")[0];
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.items && data.items.length > 0) {
+                showResult(data.items[0]);
             } else {
-                videoId = urlInput; // Assume it's just the ID
+                alert(currentMode === 'video' ? "Video not found! Check the URL." : "Channel not found! Note: Use Channel ID (UC...), not handle name.");
             }
-            
-            const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoId}&key=${API_KEY}`);
-            const data = await response.json();
-
-            if (data.items && data.items.length > 0) {
-                const stats = data.items[0].statistics;
-                const title = data.items[0].snippet.title;
-                
-                document.getElementById('label1').innerHTML = `Total Views: <span>${Number(stats.viewCount).toLocaleString()}</span>`;
-                document.getElementById('label2').innerHTML = `Likes: <span>${Number(stats.likeCount || 0).toLocaleString()}</span>`;
-                document.getElementById('label3').innerHTML = `Comments: <span>${Number(stats.commentCount || 0).toLocaleString()}</span>`;
-                
-                document.getElementById('titleName').innerText = title;
-                document.getElementById('resultBox').style.display = 'block';
-            } else { alert("Video not found!"); }
-        } catch (e) { alert("Invalid URL or ID!"); }
+        } catch (error) {
+            alert("API Error! Please check your internet or API key settings.");
+        }
     }
 
-    async function getChannelStats() {
-        const channelId = document.getElementById('channelId').value;
-        try {
-            const response = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${channelId}&key=${API_KEY}`);
-            const data = await response.json();
+    function showResult(item) {
+        const resDiv = document.getElementById('result');
+        const statsList = document.getElementById('statsList');
+        document.getElementById('resTitle').innerText = item.snippet.title;
+        
+        let statsHtml = "";
+        const s = item.statistics;
 
-            if (data.items && data.items.length > 0) {
-                const stats = data.items[0].statistics;
-                const title = data.items[0].snippet.title;
+        if (currentMode === 'video') {
+            statsHtml = `
+                <div class="stat-row"><span class="stat-label">Views</span><span class="stat-value">${Number(s.viewCount).toLocaleString()}</span></div>
+                <div class="stat-row"><span class="stat-label">Likes</span><span class="stat-value">${Number(s.likeCount || 0).toLocaleString()}</span></div>
+                <div class="stat-row"><span class="stat-label">Comments</span><span class="stat-value">${Number(s.commentCount || 0).toLocaleString()}</span></div>
+            `;
+        } else {
+            statsHtml = `
+                <div class="stat-row"><span class="stat-label">Subscribers</span><span class="stat-value">${Number(s.subscriberCount).toLocaleString()}</span></div>
+                <div class="stat-row"><span class="stat-label">Total Views</span><span class="stat-value">${Number(s.viewCount).toLocaleString()}</span></div>
+                <div class="stat-row"><span class="stat-label">Total Videos</span><span class="stat-value">${Number(s.videoCount).toLocaleString()}</span></div>
+            `;
+        }
 
-                document.getElementById('label1').innerHTML = `Total Views: <span>${Number(stats.viewCount).toLocaleString()}</span>`;
-                document.getElementById('label2').innerHTML = `Subscribers: <span>${Number(stats.subscriberCount).toLocaleString()}</span>`;
-                document.getElementById('label3').innerHTML = `Total Videos: <span>${Number(stats.videoCount).toLocaleString()}</span>`;
-                
-                document.getElementById('titleName').innerText = title;
-                document.getElementById('resultBox').style.display = 'block';
-            } else { alert("Channel not found!"); }
-        } catch (e) { alert("Error fetching data!"); }
+        statsList.innerHTML = statsHtml;
+        resDiv.style.display = 'block';
     }
 </script>
 
